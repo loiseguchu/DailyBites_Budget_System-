@@ -1,16 +1,71 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth, useTransactions, useBudgets } from "@/lib/store";
+import Login from "./Login";
+import Dashboard from "./Dashboard";
+import Transactions from "./Transactions";
+import Budgets from "./Budgets";
+import Reports from "./Reports";
+import AppSidebar from "@/components/AppSidebar";
+import MobileNav from "@/components/MobileNav";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+export default function Index() {
+  const { user, login, logout } = useAuth();
+  const { transactions, addTransaction, deleteTransaction } = useTransactions();
+  const { budgets, addBudget, updateBudget } = useBudgets();
+
+  if (!user) return <Login onLogin={login} />;
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="flex min-h-screen bg-background">
+      <AppSidebar user={user} onLogout={logout} />
+      <div className="flex-1 flex flex-col">
+        <MobileNav user={user} onLogout={logout} />
+        <main className="flex-1 p-4 md:p-8 max-w-6xl">
+          <DashboardContent
+            user={user}
+            transactions={transactions}
+            budgets={budgets}
+            addTransaction={addTransaction}
+            deleteTransaction={deleteTransaction}
+            addBudget={addBudget}
+            updateBudget={updateBudget}
+          />
+        </main>
+      </div>
     </div>
   );
-};
+}
 
-const Index = PlaceholderIndex;
+function DashboardContent({
+  user,
+  transactions,
+  budgets,
+  addTransaction,
+  deleteTransaction,
+  addBudget,
+  updateBudget,
+}: {
+  user: NonNullable<ReturnType<typeof useAuth>["user"]>;
+  transactions: ReturnType<typeof useTransactions>["transactions"];
+  budgets: ReturnType<typeof useBudgets>["budgets"];
+  addTransaction: ReturnType<typeof useTransactions>["addTransaction"];
+  deleteTransaction: ReturnType<typeof useTransactions>["deleteTransaction"];
+  addBudget: ReturnType<typeof useBudgets>["addBudget"];
+  updateBudget: ReturnType<typeof useBudgets>["updateBudget"];
+}) {
+  // We use the path from the parent BrowserRouter
+  // This component is rendered at "/" so we need nested-style routing
+  // Instead, let's just use location to determine which page to show
+  const path = window.location.pathname;
 
-export default Index;
+  if (path === "/transactions") {
+    return <Transactions user={user} transactions={transactions} onAdd={addTransaction} onDelete={deleteTransaction} />;
+  }
+  if (path === "/budgets" && user.role === "manager") {
+    return <Budgets budgets={budgets} onAdd={addBudget} onUpdate={updateBudget} />;
+  }
+  if (path === "/reports" && user.role === "manager") {
+    return <Reports transactions={transactions} budgets={budgets} />;
+  }
+  return <Dashboard user={user} transactions={transactions} budgets={budgets} />;
+}
