@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ArrowLeftRight, Wallet, FileBarChart, LogOut, Coffee, Users } from "lucide-react";
+import { LayoutDashboard, ArrowLeftRight, Wallet, FileBarChart, LogOut, Coffee, Users, Tag, Shield } from "lucide-react";
 import { type User } from "@/lib/store";
 
 interface Props {
@@ -12,7 +12,9 @@ const navItems = [
   { to: "/transactions", label: "Transactions", icon: ArrowLeftRight, managerOnly: false },
   { to: "/budgets", label: "Budgets", icon: Wallet, managerOnly: true },
   { to: "/reports", label: "Reports", icon: FileBarChart, managerOnly: true },
-  { to: "/staff", label: "Staff Management", icon: Users, managerOnly: true },
+  { to: "/categories", label: "Categories", icon: Tag, managerOnly: true },
+  { to: "/staff", label: "Staff", icon: Users, managerOnly: true },
+  { to: "/audit", label: "Audit Trail", icon: Shield, managerOnly: true },
 ];
 
 export default function AppSidebar({ user, onLogout }: Props) {

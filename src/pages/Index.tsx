@@ -1,19 +1,25 @@
-import { useAuth, useTransactions, useBudgets } from "@/lib/store";
+import { useAuth, useTransactions, useBudgets, useCategories, useAuditTrail } from "@/lib/store";
 import Login from "./Login";
 import Dashboard from "./Dashboard";
 import Transactions from "./Transactions";
 import Budgets from "./Budgets";
 import Reports from "./Reports";
 import StaffManagement from "./StaffManagement";
+import CategoryManagement from "./CategoryManagement";
+import AuditTrail from "./AuditTrail";
 import AppSidebar from "@/components/AppSidebar";
 import MobileNav from "@/components/MobileNav";
 
 export default function Index() {
   const { user, login, logout } = useAuth();
   const { transactions, addTransaction, deleteTransaction } = useTransactions();
-  const { budgets, addBudget, updateBudget } = useBudgets();
+  const { budgets, addBudget, updateBudget, deleteBudget } = useBudgets();
+  const { categories, addCategory, deleteCategory, toggleBudget } = useCategories();
+  const { entries: auditEntries, addEntry: addAuditEntry } = useAuditTrail();
 
   if (!user) return <Login onLogin={login} />;
+
+  const audit = (action: string, details: string) => addAuditEntry(action, user.name, details);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -21,14 +27,21 @@ export default function Index() {
       <div className="flex-1 flex flex-col">
         <MobileNav user={user} onLogout={logout} />
         <main className="flex-1 p-4 md:p-8 max-w-6xl">
-          <DashboardContent
+          <Content
             user={user}
             transactions={transactions}
             budgets={budgets}
+            categories={categories}
+            auditEntries={auditEntries}
             addTransaction={addTransaction}
             deleteTransaction={deleteTransaction}
             addBudget={addBudget}
             updateBudget={updateBudget}
+            deleteBudget={deleteBudget}
+            addCategory={addCategory}
+            deleteCategory={deleteCategory}
+            toggleBudget={toggleBudget}
+            audit={audit}
           />
         </main>
       </div>
@@ -36,36 +49,27 @@ export default function Index() {
   );
 }
 
-function DashboardContent({
-  user,
-  transactions,
-  budgets,
-  addTransaction,
-  deleteTransaction,
-  addBudget,
-  updateBudget,
-}: {
-  user: NonNullable<ReturnType<typeof useAuth>["user"]>;
-  transactions: ReturnType<typeof useTransactions>["transactions"];
-  budgets: ReturnType<typeof useBudgets>["budgets"];
-  addTransaction: ReturnType<typeof useTransactions>["addTransaction"];
-  deleteTransaction: ReturnType<typeof useTransactions>["deleteTransaction"];
-  addBudget: ReturnType<typeof useBudgets>["addBudget"];
-  updateBudget: ReturnType<typeof useBudgets>["updateBudget"];
-}) {
+function Content(props: any) {
+  const { user } = props;
   const path = window.location.pathname;
 
   if (path === "/transactions") {
-    return <Transactions user={user} transactions={transactions} onAdd={addTransaction} onDelete={deleteTransaction} />;
+    return <Transactions user={user} transactions={props.transactions} onAdd={props.addTransaction} onDelete={props.deleteTransaction} onAudit={props.audit} />;
   }
   if (path === "/budgets" && user.role === "manager") {
-    return <Budgets budgets={budgets} onAdd={addBudget} onUpdate={updateBudget} />;
+    return <Budgets budgets={props.budgets} onAdd={props.addBudget} onUpdate={props.updateBudget} onDelete={props.deleteBudget} onAudit={props.audit} />;
   }
   if (path === "/reports" && user.role === "manager") {
-    return <Reports transactions={transactions} budgets={budgets} />;
+    return <Reports transactions={props.transactions} budgets={props.budgets} />;
   }
   if (path === "/staff" && user.role === "manager") {
-    return <StaffManagement currentUser={user} />;
+    return <StaffManagement currentUser={user} onAudit={props.audit} />;
   }
-  return <Dashboard user={user} transactions={transactions} budgets={budgets} />;
+  if (path === "/categories" && user.role === "manager") {
+    return <CategoryManagement categories={props.categories} onAdd={props.addCategory} onDelete={props.deleteCategory} onToggleBudget={props.toggleBudget} onAudit={props.audit} />;
+  }
+  if (path === "/audit" && user.role === "manager") {
+    return <AuditTrail entries={props.auditEntries} />;
+  }
+  return <Dashboard user={user} transactions={props.transactions} budgets={props.budgets} />;
 }

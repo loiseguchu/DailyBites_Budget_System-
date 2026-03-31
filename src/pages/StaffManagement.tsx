@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, UserPlus, Users } from "lucide-react";
+import { Trash2, UserPlus, Users, Mail, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,9 +9,10 @@ import { type User, useUsers } from "@/lib/store";
 
 interface Props {
   currentUser: User;
+  onAudit?: (action: string, details: string) => void;
 }
 
-export default function StaffManagement({ currentUser }: Props) {
+export default function StaffManagement({ currentUser, onAudit }: Props) {
   const { users, addUser, deleteUser } = useUsers();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
@@ -25,14 +26,15 @@ export default function StaffManagement({ currentUser }: Props) {
       alert("A user with this email already exists.");
       return;
     }
-    addUser({
-      name: form.name,
-      email: form.email,
-      password: form.password,
-      role: "staff",
-    });
+    addUser({ name: form.name, email: form.email, password: form.password, role: "staff" });
+    onAudit?.("Staff Added", `${form.name} (${form.email}) by ${currentUser.name}`);
     setOpen(false);
     setForm({ name: "", email: "", password: "" });
+  };
+
+  const handleDelete = (u: User) => {
+    deleteUser(u.id);
+    onAudit?.("Staff Removed", `${u.name} (${u.email}) by ${currentUser.name}`);
   };
 
   return (
@@ -70,8 +72,9 @@ export default function StaffManagement({ currentUser }: Props) {
       {/* Managers */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4">
-          <Users className="w-5 h-5 text-primary" />
+          <Shield className="w-5 h-5 text-primary" />
           <h2 className="font-serif text-lg">Managers / Admins</h2>
+          <span className="text-xs text-muted-foreground ml-auto">{managerUsers.length} admin(s)</span>
         </div>
         <div className="space-y-3">
           {managerUsers.map((u) => (
@@ -82,7 +85,7 @@ export default function StaffManagement({ currentUser }: Props) {
                 </div>
                 <div>
                   <p className="text-sm font-medium">{u.name}</p>
-                  <p className="text-xs text-muted-foreground">{u.email}</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" />{u.email}</p>
                 </div>
               </div>
               <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium capitalize">{u.role}</span>
@@ -96,9 +99,13 @@ export default function StaffManagement({ currentUser }: Props) {
         <div className="flex items-center gap-2 mb-4">
           <Users className="w-5 h-5 text-accent" />
           <h2 className="font-serif text-lg">Staff Members</h2>
+          <span className="text-xs text-muted-foreground ml-auto">{staffUsers.length} member(s)</span>
         </div>
         {staffUsers.length === 0 ? (
-          <p className="text-muted-foreground text-sm text-center py-8">No staff members yet. Click "Add Staff" to create one.</p>
+          <div className="text-center py-8">
+            <Users className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground text-sm">No staff members yet. Click "Add Staff" to create one.</p>
+          </div>
         ) : (
           <div className="space-y-3">
             <AnimatePresence>
@@ -110,12 +117,12 @@ export default function StaffManagement({ currentUser }: Props) {
                     </div>
                     <div>
                       <p className="text-sm font-medium">{u.name}</p>
-                      <p className="text-xs text-muted-foreground">{u.email}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" />{u.email}</p>
                     </div>
                   </div>
-                  <button onClick={() => deleteUser(u.id)} className="text-muted-foreground hover:text-destructive transition-colors p-2">
+                  <Button variant="ghost" size="sm" onClick={() => handleDelete(u)} className="text-muted-foreground hover:text-destructive">
                     <Trash2 className="w-4 h-4" />
-                  </button>
+                  </Button>
                 </motion.div>
               ))}
             </AnimatePresence>
