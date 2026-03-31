@@ -1,24 +1,27 @@
 import { useState, useMemo } from "react";
-import { Plus, Trash2, Search } from "lucide-react";
+import { Plus, Trash2, Search, Receipt } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { type Transaction, type User, INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "@/lib/store";
+import { type Transaction, type User, useCategories } from "@/lib/store";
 
 interface Props {
   user: User;
   transactions: Transaction[];
   onAdd: (t: Omit<Transaction, "id">) => void;
   onDelete: (id: string) => void;
+  onAudit?: (action: string, details: string) => void;
 }
 
-export default function Transactions({ user, transactions, onAdd, onDelete }: Props) {
+export default function Transactions({ user, transactions, onAdd, onDelete, onAudit }: Props) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
+  const { incomeCategories, expenseCategories } = useCategories();
 
   const [form, setForm] = useState({
     type: "income" as "income" | "expense",
@@ -26,9 +29,9 @@ export default function Transactions({ user, transactions, onAdd, onDelete }: Pr
     amount: "",
     description: "",
     date: new Date().toISOString().split("T")[0],
+    receipt: "",
   });
 
-  // Staff can only see their own transactions; managers see all
   const visibleTransactions = useMemo(() => {
     if (user.role === "manager") return transactions;
     return transactions.filter((t) => t.recordedBy === user.name);
@@ -47,12 +50,20 @@ export default function Transactions({ user, transactions, onAdd, onDelete }: Pr
       description: form.description,
       date: form.date,
       recordedBy: user.name,
+      receipt: form.receipt || undefined,
     });
+    onAudit?.("Transaction Added", `${form.type} - ${form.category} - KES ${form.amount} by ${user.name}`);
     setOpen(false);
-    setForm({ type: "income", category: "", amount: "", description: "", date: new Date().toISOString().split("T")[0] });
+    setForm({ type: "income", category: "", amount: "", description: "", date: new Date().toISOString().split("T")[0], receipt: "" });
   };
 
-  const categories = form.type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const handleDelete = (id: string) => {
+    const txn = transactions.find((t) => t.id === id);
+    onDelete(id);
+    if (txn) onAudit?.("Transaction Deleted", `${txn.type} - ${txn.category} - KES ${txn.amount}`);
+  };
+
+  const categories = form.type === "income" ? incomeCategories : expenseCategories;
 
   return (
     <div className="space-y-6">
@@ -103,6 +114,15 @@ export default function Transactions({ user, transactions, onAdd, onDelete }: Pr
                 <Label>Date</Label>
                 <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
               </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2"><Receipt className="w-4 h-4" /> Receipt / Reference</Label>
+                <Textarea
+                  value={form.receipt}
+                  onChange={(e) => setForm({ ...form, receipt: e.target.value })}
+                  placeholder="Receipt number, supplier details, or notes..."
+                  rows={2}
+                />
+              </div>
               <Button type="submit" className="w-full">Save Transaction</Button>
             </form>
           </DialogContent>
@@ -132,6 +152,7 @@ export default function Transactions({ user, transactions, onAdd, onDelete }: Pr
                 <th className="px-5 py-3 font-medium">Description</th>
                 <th className="px-5 py-3 font-medium">Category</th>
                 {user.role === "manager" && <th className="px-5 py-3 font-medium">Recorded By</th>}
+                <th className="px-5 py-3 font-medium">Receipt</th>
                 <th className="px-5 py-3 font-medium text-right">Amount</th>
                 <th className="px-5 py-3 font-medium w-10"></th>
               </tr>
@@ -150,12 +171,13 @@ export default function Transactions({ user, transactions, onAdd, onDelete }: Pr
                     <td className="px-5 py-3">{t.description}</td>
                     <td className="px-5 py-3"><span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground">{t.category}</span></td>
                     {user.role === "manager" && <td className="px-5 py-3 text-muted-foreground">{t.recordedBy}</td>}
+                    <td className="px-5 py-3 text-xs text-muted-foreground max-w-[120px] truncate">{t.receipt || "—"}</td>
                     <td className={`px-5 py-3 text-right font-medium ${t.type === "income" ? "text-success" : "text-foreground"}`}>
                       {t.type === "income" ? "+" : "-"} KES {t.amount.toLocaleString()}
                     </td>
                     <td className="px-5 py-3">
                       {user.role === "manager" && (
-                        <button onClick={() => onDelete(t.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                        <button onClick={() => handleDelete(t.id)} className="text-muted-foreground hover:text-destructive transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       )}

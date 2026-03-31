@@ -19,6 +19,7 @@ export interface Transaction {
   description: string;
   date: string;
   recordedBy: string;
+  receipt?: string; // receipt note/reference
 }
 
 export interface Budget {
@@ -27,6 +28,22 @@ export interface Budget {
   allocated: number;
   spent: number;
   month: string; // YYYY-MM
+  enabled: boolean;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  type: "income" | "expense";
+  budgetEnabled: boolean;
+}
+
+export interface AuditEntry {
+  id: string;
+  action: string;
+  performedBy: string;
+  details: string;
+  timestamp: string;
 }
 
 // Default admin/manager accounts
@@ -37,13 +54,30 @@ const DEFAULT_USERS: User[] = [
   { id: "4", name: "Mary Wanjiku", email: "mary@dailybite.co.ke", password: "staff123", role: "staff" },
 ];
 
-const INCOME_CATEGORIES = ["Food Sales", "Beverage Sales", "Catering", "Other Income"];
-const EXPENSE_CATEGORIES = ["Ingredients", "Utilities", "Wages", "Rent", "Equipment", "Marketing", "Transport", "Other"];
+const DEFAULT_INCOME_CATEGORIES: Category[] = [
+  { id: "cat-1", name: "Food Sales", type: "income", budgetEnabled: false },
+  { id: "cat-2", name: "Beverage Sales", type: "income", budgetEnabled: false },
+  { id: "cat-3", name: "Catering", type: "income", budgetEnabled: false },
+  { id: "cat-4", name: "Other Income", type: "income", budgetEnabled: false },
+];
+
+const DEFAULT_EXPENSE_CATEGORIES: Category[] = [
+  { id: "cat-5", name: "Ingredients", type: "expense", budgetEnabled: true },
+  { id: "cat-6", name: "Utilities", type: "expense", budgetEnabled: true },
+  { id: "cat-7", name: "Wages", type: "expense", budgetEnabled: true },
+  { id: "cat-8", name: "Rent", type: "expense", budgetEnabled: true },
+  { id: "cat-9", name: "Equipment", type: "expense", budgetEnabled: true },
+  { id: "cat-10", name: "Marketing", type: "expense", budgetEnabled: true },
+  { id: "cat-11", name: "Transport", type: "expense", budgetEnabled: false },
+  { id: "cat-12", name: "Other", type: "expense", budgetEnabled: true },
+];
 
 const now = new Date();
 const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
 function generateDemoTransactions(): Transaction[] {
+  const INCOME_CATS = ["Food Sales", "Beverage Sales"];
+  const EXPENSE_CATS = ["Ingredients", "Utilities", "Wages", "Rent"];
   const txns: Transaction[] = [];
   const staffNames = ["James Mwangi", "Mary Wanjiku"];
   const days = 30;
@@ -56,7 +90,7 @@ function generateDemoTransactions(): Transaction[] {
     txns.push({
       id: `inc-${i}`,
       type: "income",
-      category: INCOME_CATEGORIES[Math.floor(Math.random() * 2)],
+      category: INCOME_CATS[Math.floor(Math.random() * 2)],
       amount: Math.round(3000 + Math.random() * 7000),
       description: `Daily sales - ${dateStr}`,
       date: dateStr,
@@ -67,7 +101,7 @@ function generateDemoTransactions(): Transaction[] {
       txns.push({
         id: `exp-${i}`,
         type: "expense",
-        category: EXPENSE_CATEGORIES[Math.floor(Math.random() * 4)],
+        category: EXPENSE_CATS[Math.floor(Math.random() * 4)],
         amount: Math.round(500 + Math.random() * 4000),
         description: `Purchase - ${dateStr}`,
         date: dateStr,
@@ -79,12 +113,14 @@ function generateDemoTransactions(): Transaction[] {
 }
 
 function generateDemoBudgets(): Budget[] {
-  return EXPENSE_CATEGORIES.slice(0, 6).map((cat, i) => ({
+  const cats = ["Ingredients", "Utilities", "Wages", "Rent", "Equipment", "Marketing"];
+  return cats.map((cat, i) => ({
     id: `bud-${i}`,
     category: cat,
     allocated: [80000, 15000, 120000, 50000, 20000, 10000][i],
     spent: [62000, 12400, 110000, 50000, 8500, 7200][i],
     month: currentMonth,
+    enabled: true,
   }));
 }
 
@@ -167,7 +203,52 @@ export function useBudgets() {
     setBudgets((prev) => prev.map((b) => (b.id === id ? { ...b, ...updates } : b)));
   }, [setBudgets]);
 
-  return { budgets, addBudget, updateBudget };
+  const deleteBudget = useCallback((id: string) => {
+    setBudgets((prev) => prev.filter((b) => b.id !== id));
+  }, [setBudgets]);
+
+  return { budgets, addBudget, updateBudget, deleteBudget };
 }
 
-export { INCOME_CATEGORIES, EXPENSE_CATEGORIES };
+// Categories hook
+export function useCategories() {
+  const [categories, setCategories] = useLocalState<Category[]>(
+    "bms-categories",
+    [...DEFAULT_INCOME_CATEGORIES, ...DEFAULT_EXPENSE_CATEGORIES]
+  );
+
+  const addCategory = useCallback((c: Omit<Category, "id">) => {
+    setCategories((prev) => [...prev, { ...c, id: `cat-${Date.now()}` }]);
+  }, [setCategories]);
+
+  const deleteCategory = useCallback((id: string) => {
+    setCategories((prev) => prev.filter((c) => c.id !== id));
+  }, [setCategories]);
+
+  const toggleBudget = useCallback((id: string) => {
+    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, budgetEnabled: !c.budgetEnabled } : c)));
+  }, [setCategories]);
+
+  const incomeCategories = categories.filter((c) => c.type === "income").map((c) => c.name);
+  const expenseCategories = categories.filter((c) => c.type === "expense").map((c) => c.name);
+
+  return { categories, addCategory, deleteCategory, toggleBudget, incomeCategories, expenseCategories };
+}
+
+// Audit trail hook
+export function useAuditTrail() {
+  const [entries, setEntries] = useLocalState<AuditEntry[]>("bms-audit", []);
+
+  const addEntry = useCallback((action: string, performedBy: string, details: string) => {
+    setEntries((prev) => [
+      { id: `audit-${Date.now()}`, action, performedBy, details, timestamp: new Date().toISOString() },
+      ...prev,
+    ]);
+  }, [setEntries]);
+
+  return { entries, addEntry };
+}
+
+// Keep backward compat exports
+export const INCOME_CATEGORIES = ["Food Sales", "Beverage Sales", "Catering", "Other Income"];
+export const EXPENSE_CATEGORIES = ["Ingredients", "Utilities", "Wages", "Rent", "Equipment", "Marketing", "Transport", "Other"];
