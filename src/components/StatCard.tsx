@@ -11,12 +11,14 @@ interface Props {
 }
 
 export default function StatCard({ title, value, subtitle, icon: Icon, trend, delay = 0 }: Props) {
+  const borderColor = trend === "up" ? "border-t-success" : trend === "down" ? "border-t-destructive" : "border-t-accent";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.4 }}
-      className="glass-card rounded-xl p-5"
+      className={`glass-card rounded-xl p-5 border-t-4 ${borderColor}`}
     >
       <div className="flex items-start justify-between">
         <div>
@@ -28,8 +30,8 @@ export default function StatCard({ title, value, subtitle, icon: Icon, trend, de
             </p>
           )}
         </div>
-        <div className="w-10 h-10 rounded-lg bg-accent/20 flex items-center justify-center">
-          <Icon className="w-5 h-5 text-accent" />
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${trend === "up" ? "bg-success/15" : trend === "down" ? "bg-destructive/15" : "bg-accent/20"}`}>
+          <Icon className={`w-5 h-5 ${trend === "up" ? "text-success" : trend === "down" ? "text-destructive" : "text-accent"}`} />
         </div>
       </div>
     </motion.div>
