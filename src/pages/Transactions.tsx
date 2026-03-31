@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Plus, Trash2, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,13 @@ export default function Transactions({ user, transactions, onAdd, onDelete }: Pr
     date: new Date().toISOString().split("T")[0],
   });
 
-  const filtered = transactions
+  // Staff can only see their own transactions; managers see all
+  const visibleTransactions = useMemo(() => {
+    if (user.role === "manager") return transactions;
+    return transactions.filter((t) => t.recordedBy === user.name);
+  }, [transactions, user]);
+
+  const filtered = visibleTransactions
     .filter((t) => typeFilter === "all" || t.type === typeFilter)
     .filter((t) => t.description.toLowerCase().includes(search.toLowerCase()) || t.category.toLowerCase().includes(search.toLowerCase()));
 
@@ -53,7 +59,9 @@ export default function Transactions({ user, transactions, onAdd, onDelete }: Pr
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-serif">Transactions</h1>
-          <p className="text-muted-foreground text-sm">Record and view all income and expenses.</p>
+          <p className="text-muted-foreground text-sm">
+            {user.role === "staff" ? "View and record your transactions." : "View and manage all staff transactions."}
+          </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
@@ -123,7 +131,7 @@ export default function Transactions({ user, transactions, onAdd, onDelete }: Pr
                 <th className="px-5 py-3 font-medium">Date</th>
                 <th className="px-5 py-3 font-medium">Description</th>
                 <th className="px-5 py-3 font-medium">Category</th>
-                <th className="px-5 py-3 font-medium">Recorded By</th>
+                {user.role === "manager" && <th className="px-5 py-3 font-medium">Recorded By</th>}
                 <th className="px-5 py-3 font-medium text-right">Amount</th>
                 <th className="px-5 py-3 font-medium w-10"></th>
               </tr>
@@ -141,7 +149,7 @@ export default function Transactions({ user, transactions, onAdd, onDelete }: Pr
                     <td className="px-5 py-3 text-muted-foreground">{new Date(t.date).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}</td>
                     <td className="px-5 py-3">{t.description}</td>
                     <td className="px-5 py-3"><span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground">{t.category}</span></td>
-                    <td className="px-5 py-3 text-muted-foreground">{t.recordedBy}</td>
+                    {user.role === "manager" && <td className="px-5 py-3 text-muted-foreground">{t.recordedBy}</td>}
                     <td className={`px-5 py-3 text-right font-medium ${t.type === "income" ? "text-success" : "text-foreground"}`}>
                       {t.type === "income" ? "+" : "-"} KES {t.amount.toLocaleString()}
                     </td>

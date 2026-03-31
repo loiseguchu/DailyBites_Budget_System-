@@ -7,6 +7,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  password: string;
   role: UserRole;
 }
 
@@ -28,10 +29,12 @@ export interface Budget {
   month: string; // YYYY-MM
 }
 
-// Demo data
-const DEMO_USERS: User[] = [
-  { id: "1", name: "Loise Guchu", email: "manager@dailybite.co.ke", role: "manager" },
-  { id: "2", name: "James Mwangi", email: "staff@dailybite.co.ke", role: "staff" },
+// Default admin/manager accounts
+const DEFAULT_USERS: User[] = [
+  { id: "1", name: "Loise Guchu", email: "manager@dailybite.co.ke", password: "admin123", role: "manager" },
+  { id: "2", name: "Peter Kamau", email: "admin@dailybite.co.ke", password: "admin123", role: "manager" },
+  { id: "3", name: "James Mwangi", email: "james@dailybite.co.ke", password: "staff123", role: "staff" },
+  { id: "4", name: "Mary Wanjiku", email: "mary@dailybite.co.ke", password: "staff123", role: "staff" },
 ];
 
 const INCOME_CATEGORIES = ["Food Sales", "Beverage Sales", "Catering", "Other Income"];
@@ -42,13 +45,14 @@ const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart
 
 function generateDemoTransactions(): Transaction[] {
   const txns: Transaction[] = [];
+  const staffNames = ["James Mwangi", "Mary Wanjiku"];
   const days = 30;
   for (let i = 0; i < days; i++) {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
     const dateStr = date.toISOString().split("T")[0];
+    const staffName = staffNames[i % staffNames.length];
 
-    // Income
     txns.push({
       id: `inc-${i}`,
       type: "income",
@@ -56,10 +60,9 @@ function generateDemoTransactions(): Transaction[] {
       amount: Math.round(3000 + Math.random() * 7000),
       description: `Daily sales - ${dateStr}`,
       date: dateStr,
-      recordedBy: "James Mwangi",
+      recordedBy: staffName,
     });
 
-    // Expenses
     if (i % 2 === 0) {
       txns.push({
         id: `exp-${i}`,
@@ -68,7 +71,7 @@ function generateDemoTransactions(): Transaction[] {
         amount: Math.round(500 + Math.random() * 4000),
         description: `Purchase - ${dateStr}`,
         date: dateStr,
-        recordedBy: "James Mwangi",
+        recordedBy: staffName,
       });
     }
   }
@@ -103,18 +106,34 @@ function useLocalState<T>(key: string, initial: T): [T, (v: T | ((prev: T) => T)
   return [state, setState];
 }
 
+// Users/accounts hook
+export function useUsers() {
+  const [users, setUsers] = useLocalState<User[]>("bms-users", DEFAULT_USERS);
+
+  const addUser = useCallback((u: Omit<User, "id">) => {
+    setUsers((prev) => [...prev, { ...u, id: `user-${Date.now()}` }]);
+  }, [setUsers]);
+
+  const deleteUser = useCallback((id: string) => {
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+  }, [setUsers]);
+
+  return { users, addUser, deleteUser };
+}
+
 // Auth hook
 export function useAuth() {
   const [user, setUser] = useLocalState<User | null>("bms-user", null);
+  const { users } = useUsers();
 
-  const login = useCallback((email: string, _password: string): User | null => {
-    const found = DEMO_USERS.find((u) => u.email === email);
+  const login = useCallback((email: string, password: string): User | null => {
+    const found = users.find((u) => u.email === email && u.password === password);
     if (found) {
       setUser(found);
       return found;
     }
     return null;
-  }, [setUser]);
+  }, [users, setUser]);
 
   const logout = useCallback(() => setUser(null), [setUser]);
 
