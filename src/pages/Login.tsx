@@ -19,7 +19,7 @@ export default function Login({ onLogin }: Props) {
     e.preventDefault();
     setError("");
     const user = onLogin(email, password);
-    if (!user) setError("Invalid credentials. Try manager@dailybite.co.ke or staff@dailybite.co.ke");
+    if (!user) setError("Invalid email or password. Please try again.");
   };
 
   return (
@@ -46,7 +46,7 @@ export default function Login({ onLogin }: Props) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="manager@dailybite.co.ke"
+              placeholder="Enter your email"
               required
             />
           </div>
@@ -57,7 +57,7 @@ export default function Login({ onLogin }: Props) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Any password works for demo"
+              placeholder="Enter your password"
               required
             />
           </div>
@@ -70,8 +70,10 @@ export default function Login({ onLogin }: Props) {
 
           <div className="text-center text-xs text-muted-foreground space-y-1 pt-2">
             <p>Demo accounts:</p>
-            <p><strong>Manager:</strong> manager@dailybite.co.ke</p>
-            <p><strong>Staff:</strong> staff@dailybite.co.ke</p>
+            <p><strong>Manager:</strong> manager@dailybite.co.ke / admin123</p>
+            <p><strong>Manager 2:</strong> admin@dailybite.co.ke / admin123</p>
+            <p><strong>Staff:</strong> james@dailybite.co.ke / staff123</p>
+            <p><strong>Staff:</strong> mary@dailybite.co.ke / staff123</p>
           </div>
         </form>
       </motion.div>

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ArrowLeftRight, Wallet, FileBarChart, Coffee, Menu, X, LogOut } from "lucide-react";
+import { LayoutDashboard, ArrowLeftRight, Wallet, FileBarChart, Coffee, Menu, X, LogOut, Users } from "lucide-react";
 import { type User } from "@/lib/store";
 import { useState } from "react";
 
@@ -9,10 +9,11 @@ interface Props {
 }
 
 const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { to: "/budgets", label: "Budgets", icon: Wallet },
-  { to: "/reports", label: "Reports", icon: FileBarChart },
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, managerOnly: false },
+  { to: "/transactions", label: "Transactions", icon: ArrowLeftRight, managerOnly: false },
+  { to: "/budgets", label: "Budgets", icon: Wallet, managerOnly: true },
+  { to: "/reports", label: "Reports", icon: FileBarChart, managerOnly: true },
+  { to: "/staff", label: "Staff Management", icon: Users, managerOnly: true },
 ];
 
 export default function MobileNav({ user, onLogout }: Props) {
@@ -33,7 +34,7 @@ export default function MobileNav({ user, onLogout }: Props) {
       {open && (
         <div className="border-b border-border bg-card px-4 pb-4 space-y-1">
           {navItems
-            .filter((item) => !(item.to === "/budgets" && user.role === "staff") && !(item.to === "/reports" && user.role === "staff"))
+            .filter((item) => !item.managerOnly || user.role === "manager")
             .map((item) => {
               const active = location.pathname === item.to;
               return (

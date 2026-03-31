@@ -1,10 +1,10 @@
-import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth, useTransactions, useBudgets } from "@/lib/store";
 import Login from "./Login";
 import Dashboard from "./Dashboard";
 import Transactions from "./Transactions";
 import Budgets from "./Budgets";
 import Reports from "./Reports";
+import StaffManagement from "./StaffManagement";
 import AppSidebar from "@/components/AppSidebar";
 import MobileNav from "@/components/MobileNav";
 
@@ -53,9 +53,6 @@ function DashboardContent({
   addBudget: ReturnType<typeof useBudgets>["addBudget"];
   updateBudget: ReturnType<typeof useBudgets>["updateBudget"];
 }) {
-  // We use the path from the parent BrowserRouter
-  // This component is rendered at "/" so we need nested-style routing
-  // Instead, let's just use location to determine which page to show
   const path = window.location.pathname;
 
   if (path === "/transactions") {
@@ -66,6 +63,9 @@ function DashboardContent({
   }
   if (path === "/reports" && user.role === "manager") {
     return <Reports transactions={transactions} budgets={budgets} />;
+  }
+  if (path === "/staff" && user.role === "manager") {
+    return <StaffManagement currentUser={user} />;
   }
   return <Dashboard user={user} transactions={transactions} budgets={budgets} />;
 }
