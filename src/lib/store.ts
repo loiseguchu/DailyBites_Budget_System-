@@ -36,6 +36,7 @@ export interface Category {
   name: string;
   type: "income" | "expense";
   budgetEnabled: boolean;
+  budgetAmount?: number;
 }
 
 export interface AuditEntry {

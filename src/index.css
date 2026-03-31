@@ -101,6 +101,12 @@
 
 @layer utilities {
   .glass-card {
-    @apply bg-card/80 backdrop-blur-sm border border-border/50 shadow-sm;
+    @apply bg-card/80 backdrop-blur-sm border border-border/50 shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+}
+
+@layer base {
+  ::selection {
+    background-color: hsl(var(--accent) / 0.3);
   }
 }

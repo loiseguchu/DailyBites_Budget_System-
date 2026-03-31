@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Tag, ToggleLeft, ToggleRight } from "lucide-react";
+import { Plus, Trash2, Tag, ToggleLeft, ToggleRight, Wallet } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ interface Props {
 
 export default function CategoryManagement({ categories, onAdd, onDelete, onToggleBudget, onAudit }: Props) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", type: "expense" as "income" | "expense" });
+  const [form, setForm] = useState({ name: "", type: "expense" as "income" | "expense", budgetAmount: "" });
 
   const incomeCategories = categories.filter((c) => c.type === "income");
   const expenseCategories = categories.filter((c) => c.type === "expense");
@@ -29,10 +29,16 @@ export default function CategoryManagement({ categories, onAdd, onDelete, onTogg
       alert("Category already exists!");
       return;
     }
-    onAdd({ name: form.name, type: form.type, budgetEnabled: form.type === "expense" });
-    onAudit?.("Category Added", `${form.type} - ${form.name}`);
+    const isExpense = form.type === "expense";
+    onAdd({
+      name: form.name,
+      type: form.type,
+      budgetEnabled: isExpense,
+      budgetAmount: isExpense && form.budgetAmount ? Number(form.budgetAmount) : undefined,
+    });
+    onAudit?.("Category Added", `${form.type} - ${form.name}${isExpense && form.budgetAmount ? ` (Budget: KES ${Number(form.budgetAmount).toLocaleString()})` : ""}`);
     setOpen(false);
-    setForm({ name: "", type: "expense" });
+    setForm({ name: "", type: "expense", budgetAmount: "" });
   };
 
   const handleDelete = (cat: Category) => {
@@ -45,10 +51,10 @@ export default function CategoryManagement({ categories, onAdd, onDelete, onTogg
     onAudit?.("Budget Toggle", `${cat.name} budgeting ${cat.budgetEnabled ? "disabled" : "enabled"}`);
   };
 
-  const renderSection = (title: string, items: Category[], icon: string) => (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-xl p-5">
+  const renderSection = (title: string, items: Category[], colorAccent: string) => (
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className={`glass-card rounded-xl p-5 border-l-4 ${colorAccent}`}>
       <h2 className="font-serif text-lg mb-4 flex items-center gap-2">
-        <Tag className="w-5 h-5 text-primary" />
+        <Tag className={`w-5 h-5 ${colorAccent.includes("success") ? "text-success" : "text-accent"}`} />
         {title} ({items.length})
       </h2>
       {items.length === 0 ? (
@@ -62,13 +68,19 @@ export default function CategoryManagement({ categories, onAdd, onDelete, onTogg
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex items-center justify-between p-3 rounded-lg bg-muted/30"
+                className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium">{cat.name}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${cat.type === "income" ? "bg-success/10 text-success" : "bg-secondary text-secondary-foreground"}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cat.type === "income" ? "bg-success/15 text-success" : "bg-accent/15 text-accent-foreground"}`}>
                     {cat.type}
                   </span>
+                  {cat.budgetAmount && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium flex items-center gap-1">
+                      <Wallet className="w-3 h-3" />
+                      KES {cat.budgetAmount.toLocaleString()}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   {cat.type === "expense" && (
@@ -106,7 +118,9 @@ export default function CategoryManagement({ categories, onAdd, onDelete, onTogg
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button><Plus className="w-4 h-4 mr-2" />Add Category</Button>
+            <Button className="bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md hover:shadow-lg transition-shadow">
+              <Plus className="w-4 h-4 mr-2" />Add Category
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle className="font-serif">Add New Category</DialogTitle></DialogHeader>
@@ -125,14 +139,27 @@ export default function CategoryManagement({ categories, onAdd, onDelete, onTogg
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit" className="w-full">Add Category</Button>
+              {form.type === "expense" && (
+                <div className="space-y-2">
+                  <Label>Monthly Budget Amount (KES)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={form.budgetAmount}
+                    onChange={(e) => setForm({ ...form, budgetAmount: e.target.value })}
+                    placeholder="e.g. 50000"
+                  />
+                  <p className="text-xs text-muted-foreground">Optional — set a monthly budget limit for this category.</p>
+                </div>
+              )}
+              <Button type="submit" className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground">Add Category</Button>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      {renderSection("Income Categories", incomeCategories, "income")}
-      {renderSection("Expense Categories", expenseCategories, "expense")}
+      {renderSection("Income Categories", incomeCategories, "border-l-success")}
+      {renderSection("Expense Categories", expenseCategories, "border-l-accent")}
     </div>
   );
 }
