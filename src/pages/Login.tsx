@@ -68,13 +68,7 @@ export default function Login({ onLogin }: Props) {
             Sign In
           </Button>
 
-          <div className="text-center text-xs text-muted-foreground space-y-1 pt-2">
-            <p>Demo accounts:</p>
-            <p><strong>Manager:</strong> manager@dailybite.co.ke / admin123</p>
-            <p><strong>Manager 2:</strong> admin@dailybite.co.ke / admin123</p>
-            <p><strong>Staff:</strong> james@dailybite.co.ke / staff123</p>
-            <p><strong>Staff:</strong> mary@dailybite.co.ke / staff123</p>
-          </div>
+          
         </form>
       </motion.div>
     </div>
